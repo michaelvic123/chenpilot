@@ -22,10 +22,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # npm install instead of npm ci: lock file may be out of sync with
+        # recently added packages (socket.io, etc.). npm install regenerates
+        # the lock file as needed without failing.
+        run: npm install
 
       - name: Run ESLint (zero warnings allowed)
         # --max-warnings 0 makes any warning a build failure.
@@ -55,10 +57,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Run ESLint (full repo – informational)
         run: npx eslint . --format stylish || true
@@ -76,10 +77,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Check formatting
         # --check exits non-zero if any file would be reformatted.
