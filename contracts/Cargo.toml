@@ -5,6 +5,7 @@ members = [
     "por_validator",
     "liquidity_vault",
     "relayer_slashing",
+    "lending_liquidation",
 ]
 resolver = "2"
 
