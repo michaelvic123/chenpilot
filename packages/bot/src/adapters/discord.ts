@@ -1,5 +1,6 @@
 import { Client, GatewayIntentBits, Message, TextChannel } from 'discord.js';
 import { TransactionNotificationData } from './types';
+import { createTrustlineOperation } from '@chen-pilot/sdk-core';
 
 export class DiscordAdapter {
   private client: Client;
@@ -33,6 +34,35 @@ export class DiscordAdapter {
 
       if (message.content === '!start') {
         await message.reply('Welcome to Chen Pilot! I am your AI-powered Stellar DeFi assistant.');
+      }
+
+      if (message.content.startsWith('!trustline')) {
+        const args = message.content.split(' ').slice(1);
+        if (args.length < 1) {
+          return message.reply('Usage: !trustline <assetCode> [issuerDomain|issuerAddress]\nExample: !trustline USDC circle.com');
+        }
+
+        const assetCode = args[0];
+        const assetIssuer = args[1];
+
+        if (!assetIssuer) {
+          return message.reply(`Please provide an issuer domain or address for ${assetCode}.`);
+        }
+
+        try {
+          await message.reply(`🔍 Looking up asset ${assetCode} from ${assetIssuer}...`);
+          const op = await createTrustlineOperation(assetCode, assetIssuer);
+          
+          let response = `✅ Found asset ${assetCode}!\n\n`;
+          response += `To add this trustline, you can use the following details in your wallet:\n`;
+          response += `**Asset:** ${assetCode}\n`;
+          response += `**Issuer:** \`${(op as any).asset.issuer}\`\n\n`;
+          response += `*Note: In a future update, I will provide a direct signing link.*`;
+          
+          await message.reply(response);
+        } catch (error) {
+          await message.reply(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+        }
       }
     });
 
