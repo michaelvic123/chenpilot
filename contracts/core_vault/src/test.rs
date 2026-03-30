@@ -1,25 +1,32 @@
 #![cfg(test)]
 
 use super::*;
-use soroban_sdk::{testutils::Address as _, Env, Address, BytesN};
+use soroban_sdk::{testutils::{Address as _, Ledger, LedgerInfo}, Env, Address, BytesN};
+use soroban_sdk::token::{Client as TokenClient, StellarAssetClient};
 
-fn setup(env: &Env) -> (Address, CoreVaultContractClient) {
+fn setup(env: &Env) -> (Address, Address, CoreVaultContractClient) {
     let admin = Address::generate(env);
+    let vault_token = env.register_stellar_asset_contract_v2(admin.clone()).address();
     let contract_id = env.register_contract(None, CoreVaultContract);
     let client = CoreVaultContractClient::new(env, &contract_id);
-    client.init(&admin);
-    (admin, client)
+    client.init(&admin, &vault_token);
+    (admin, vault_token, client)
 }
 
 fn dummy_hash(env: &Env) -> BytesN<32> {
     BytesN::from_array(env, &[1u8; 32])
 }
 
+fn mint(env: &Env, token: &Address, admin: &Address, to: &Address, amount: i128) {
+    StellarAssetClient::new(env, token).mint(to, &amount);
+    let _ = admin; // admin used for asset registration
+}
+
 #[test]
 fn test_propose_and_cancel_upgrade() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, client) = setup(&env);
+    let (_admin, _token, client) = setup(&env);
 
     client.propose_upgrade(&dummy_hash(&env));
     assert!(client.upgrade_unlock_ledger() > 0);
@@ -33,10 +40,9 @@ fn test_propose_and_cancel_upgrade() {
 fn test_apply_upgrade_before_timelock() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, client) = setup(&env);
+    let (_admin, _token, client) = setup(&env);
 
     client.propose_upgrade(&dummy_hash(&env));
-    // ledger sequence hasn't advanced past unlock_ledger
     client.apply_upgrade();
 }
 
@@ -45,7 +51,7 @@ fn test_apply_upgrade_before_timelock() {
 fn test_apply_upgrade_without_proposal() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, client) = setup(&env);
+    let (_admin, _token, client) = setup(&env);
     client.apply_upgrade();
 }
 
@@ -53,12 +59,10 @@ fn test_apply_upgrade_without_proposal() {
 fn test_transfer_admin() {
     let env = Env::default();
     env.mock_all_auths();
-    let (_admin, client) = setup(&env);
+    let (_admin, _token, client) = setup(&env);
 
     let new_admin = Address::generate(&env);
     client.transfer_admin(&new_admin);
-
-    // new admin can propose an upgrade without panicking
     client.propose_upgrade(&dummy_hash(&env));
 }
 
@@ -67,6 +71,77 @@ fn test_transfer_admin() {
 fn test_double_init() {
     let env = Env::default();
     env.mock_all_auths();
-    let (admin, client) = setup(&env);
-    client.init(&admin);
+    let (admin, vault_token, client) = setup(&env);
+    client.init(&admin, &vault_token);
+}
+
+// ── Force Exit tests ──────────────────────────────────────────────────────────
+
+#[test]
+fn test_force_exit_happy_path() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (admin, vault_token, client) = setup(&env);
+
+    let user = Address::generate(&env);
+    mint(&env, &vault_token, &admin, &user, 1000);
+
+    // Deposit while backend is online
+    client.deposit(&user, &1000);
+
+    // Backend goes offline
+    client.set_backend_status(&false);
+
+    // User initiates force exit
+    client.force_exit_request(&user);
+
+    let req = client.get_force_exit(&user).expect("should have pending request");
+    assert_eq!(req.amount, 1000);
+
+    // Advance time past 48 hours
+    env.ledger().set(LedgerInfo {
+        timestamp: env.ledger().timestamp() + FORCE_EXIT_DELAY + 1,
+        ..env.ledger().get()
+    });
+
+    client.force_exit_complete(&user);
+
+    // Request should be cleared
+    assert!(client.get_force_exit(&user).is_none());
+
+    // User should have their tokens back
+    let balance = TokenClient::new(&env, &vault_token).balance(&user);
+    assert_eq!(balance, 1000);
+}
+
+#[test]
+#[should_panic(expected = "challenge period not elapsed")]
+fn test_force_exit_too_early() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (admin, vault_token, client) = setup(&env);
+
+    let user = Address::generate(&env);
+    mint(&env, &vault_token, &admin, &user, 500);
+    client.deposit(&user, &500);
+    client.set_backend_status(&false);
+    client.force_exit_request(&user);
+
+    // Try to complete immediately — should fail
+    client.force_exit_complete(&user);
+}
+
+#[test]
+#[should_panic(expected = "backend is online: use normal withdrawal")]
+fn test_force_exit_blocked_when_online() {
+    let env = Env::default();
+    env.mock_all_auths();
+    let (admin, vault_token, client) = setup(&env);
+
+    let user = Address::generate(&env);
+    mint(&env, &vault_token, &admin, &user, 100);
+    client.deposit(&user, &100);
+
+    // Backend is still online — force exit should be rejected
+    client.force_exit_request(&user);
 }
