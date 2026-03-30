@@ -13,7 +13,7 @@ export class TelegramAdapter {
 
   async init() {
     if (!this.token) {
-      console.warn('⚠️ Telegram: No token provided, skipping initialization.');
+      console.warn("⚠️ Telegram: No token provided, skipping initialization.");
       return;
     }
 
@@ -54,7 +54,7 @@ export class TelegramAdapter {
     });
 
     this.bot.launch();
-    console.log('✅ Telegram bot initialized.');
+    console.log("✅ Telegram bot initialized.");
   }
 
   /**
@@ -73,7 +73,7 @@ export class TelegramAdapter {
     data: TransactionNotificationData
   ): Promise<boolean> {
     if (!this.bot) {
-      console.warn('⚠️ Telegram bot not initialized');
+      console.warn("⚠️ Telegram bot not initialized");
       return false;
     }
 
@@ -84,14 +84,14 @@ export class TelegramAdapter {
     }
 
     const message = this.formatTransactionMessage(data);
-    
+
     try {
       await this.bot.telegram.sendMessage(chatId, message, {
-        parse_mode: 'HTML',
+        parse_mode: "HTML",
       });
       return true;
     } catch (error) {
-      console.error('Error sending Telegram notification:', error);
+      console.error("Error sending Telegram notification:", error);
       return false;
     }
   }
@@ -100,20 +100,20 @@ export class TelegramAdapter {
    * Format transaction notification message
    */
   private formatTransactionMessage(data: TransactionNotificationData): string {
-    const statusEmoji = data.successful ? '✅' : '❌';
+    const statusEmoji = data.successful ? "✅" : "❌";
     const timestamp = new Date(data.timestamp).toLocaleString();
-    
-    let message = `<b>Transaction ${data.successful ? 'Confirmed' : 'Failed'}</b> ${statusEmoji}\n\n`;
+
+    let message = `<b>Transaction ${data.successful ? "Confirmed" : "Failed"}</b> ${statusEmoji}\n\n`;
     message += `📋 <b>Hash:</b> <code>${data.hash.slice(0, 8)}...${data.hash.slice(-8)}</code>\n`;
     message += `💰 <b>Amount:</b> ${data.amount} ${data.asset}\n`;
     message += `📤 <b>From:</b> <code>${data.from.slice(0, 4)}...${data.from.slice(-4)}</code>\n`;
     message += `📥 <b>To:</b> <code>${data.to.slice(0, 4)}...${data.to.slice(-4)}</code>\n`;
     message += `⏱️ <b>Time:</b> ${timestamp}\n`;
-    
+
     if (data.fee) {
       message += `💵 <b>Fee:</b> ${data.fee} XLM\n`;
     }
-    
+
     if (data.memo) {
       message += `📝 <b>Memo:</b> ${data.memo}\n`;
     }
@@ -126,7 +126,7 @@ export class TelegramAdapter {
    */
   async sendNotification(userId: string, message: string): Promise<boolean> {
     if (!this.bot) {
-      console.warn('⚠️ Telegram bot not initialized');
+      console.warn("⚠️ Telegram bot not initialized");
       return false;
     }
 
@@ -137,11 +137,11 @@ export class TelegramAdapter {
 
     try {
       await this.bot.telegram.sendMessage(chatId, message, {
-        parse_mode: 'HTML',
+        parse_mode: "HTML",
       });
       return true;
     } catch (error) {
-      console.error('Error sending Telegram notification:', error);
+      console.error("Error sending Telegram notification:", error);
       return false;
     }
   }

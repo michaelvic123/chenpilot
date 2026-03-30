@@ -21,19 +21,54 @@ export class DiscordAdapter {
   async init() {
     const token = process.env.DISCORD_BOT_TOKEN || this.token;
     if (!token) {
-      console.warn('⚠️ Discord: No token provided, skipping initialization.');
+      console.warn("⚠️ Discord: No token provided, skipping initialization.");
       return;
     }
 
-    this.client.once('ready', () => {
+    this.client.once("ready", () => {
       console.log(`✅ Discord bot logged in as ${this.client.user?.tag}`);
     });
 
-    this.client.on('messageCreate', async (message: Message) => {
+    this.client.on("messageCreate", async (message: Message) => {
       if (message.author.bot) return;
 
-      if (message.content === '!start') {
-        await message.reply('Welcome to Chen Pilot! I am your AI-powered Stellar DeFi assistant.');
+      if (message.content === "!start") {
+        await message.reply(
+          "Welcome to Chen Pilot! I am your AI-powered Stellar DeFi assistant."
+        );
+      }
+
+      if (message.content === "!sponsor") {
+        const userId = message.author.id;
+        await message.reply("⏳ Requesting account sponsorship...");
+
+        try {
+          const response = await fetch(
+            `${BACKEND_URL}/api/account/${userId}/sponsor`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          const data = (await response.json()) as {
+            success: boolean;
+            message: string;
+            address?: string;
+          };
+
+          if (data.success) {
+            await message.reply(
+              `✅ Account sponsored successfully!\n📬 Address: \`${data.address}\``
+            );
+          } else {
+            await message.reply(`❌ Sponsorship failed: ${data.message}`);
+          }
+        } catch (error) {
+          console.error("Sponsor command error:", error);
+          await message.reply(
+            "❌ Could not reach the sponsorship service. Please try again later."
+          );
+        }
       }
 
       if (message.content.startsWith('!trustline')) {
@@ -67,7 +102,7 @@ export class DiscordAdapter {
     });
 
     await this.client.login(token);
-    console.log('✅ Discord bot initialized.');
+    console.log("✅ Discord bot initialized.");
   }
 
   /**
@@ -86,7 +121,7 @@ export class DiscordAdapter {
     data: TransactionNotificationData
   ): Promise<boolean> {
     if (!this.client || !this.client.user) {
-      console.warn('⚠️ Discord bot not initialized');
+      console.warn("⚠️ Discord bot not initialized");
       return false;
     }
 
@@ -108,7 +143,7 @@ export class DiscordAdapter {
       await channel.send(message);
       return true;
     } catch (error) {
-      console.error('Error sending Discord notification:', error);
+      console.error("Error sending Discord notification:", error);
       return false;
     }
   }
@@ -117,20 +152,20 @@ export class DiscordAdapter {
    * Format transaction notification message
    */
   private formatTransactionMessage(data: TransactionNotificationData): string {
-    const statusEmoji = data.successful ? '✅' : '❌';
+    const statusEmoji = data.successful ? "✅" : "❌";
     const timestamp = new Date(data.timestamp).toLocaleString();
-    
-    let message = `**Transaction ${data.successful ? 'Confirmed' : 'Failed'}** ${statusEmoji}\n\n`;
+
+    let message = `**Transaction ${data.successful ? "Confirmed" : "Failed"}** ${statusEmoji}\n\n`;
     message += `📋 **Hash:** \`${data.hash.slice(0, 8)}...${data.hash.slice(-8)}\`\n`;
     message += `💰 **Amount:** ${data.amount} ${data.asset}\n`;
     message += `📤 **From:** \`${data.from.slice(0, 4)}...${data.from.slice(-4)}\`\n`;
     message += `📥 **To:** \`${data.to.slice(0, 4)}...${data.to.slice(-4)}\`\n`;
     message += `⏱️ **Time:** ${timestamp}\n`;
-    
+
     if (data.fee) {
       message += `💵 **Fee:** ${data.fee} XLM\n`;
     }
-    
+
     if (data.memo) {
       message += `📝 **Memo:** ${data.memo}\n`;
     }
@@ -143,7 +178,7 @@ export class DiscordAdapter {
    */
   async sendNotification(userId: string, message: string): Promise<boolean> {
     if (!this.client || !this.client.user) {
-      console.warn('⚠️ Discord bot not initialized');
+      console.warn("⚠️ Discord bot not initialized");
       return false;
     }
 
@@ -161,7 +196,7 @@ export class DiscordAdapter {
       await channel.send(message);
       return true;
     } catch (error) {
-      console.error('Error sending Discord notification:', error);
+      console.error("Error sending Discord notification:", error);
       return false;
     }
   }
