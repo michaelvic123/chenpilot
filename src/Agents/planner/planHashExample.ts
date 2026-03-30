@@ -1,3 +1,4 @@
+// chenpilot/src/Agents/planner/planHashExample.ts
 /**
  * Example demonstrating plan hash verification to prevent tampering
  * This shows how the system prevents hidden step injection attacks
@@ -128,7 +129,10 @@ export async function examplePayloadModification() {
 
   // 3. Verify hash
   const isValid = planHashService.verifyPlanHash(plan);
-  console.log("Hash verification:", isValid ? "✗ VALID (BAD)" : "✓ INVALID (GOOD)");
+  console.log(
+    "Hash verification:",
+    isValid ? "✗ VALID (BAD)" : "✓ INVALID (GOOD)"
+  );
 
   const newHash = planHashService.generatePlanHash(plan);
   console.log("Original hash:", originalHash);
@@ -172,7 +176,10 @@ export async function exampleSignatureVerification() {
       plan.signature,
       process.env.PLAN_PUBLIC_KEY
     );
-    console.log("Signature verification:", signatureValid ? "✓ VALID" : "✗ INVALID");
+    console.log(
+      "Signature verification:",
+      signatureValid ? "✓ VALID" : "✗ INVALID"
+    );
   }
 }
 

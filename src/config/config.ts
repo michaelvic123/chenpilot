@@ -32,6 +32,14 @@ const STELLAR_NETWORKS: Record<
   },
 };
 
+// Validate JWT secret meets minimum security requirements
+const jwtSecret = process.env.JWT_SECRET || "secret-token";
+if (jwtSecret.length < 32) {
+  throw new Error(
+    "JWT_SECRET must be at least 32 characters long. Set a strong secret in your environment."
+  );
+}
+
 // Get Stellar network from environment, default to testnet
 const stellarNetwork: StellarNetwork =
   (process.env.STELLAR_NETWORK as StellarNetwork) || "testnet";
@@ -69,7 +77,7 @@ export default {
     defaultProvider: process.env.KYC_PROVIDER || "mock",
   },
   jwt: {
-    secret: process.env.JWT_SECRET || "secret-token",
+    secret: jwtSecret,
     resetExpiry: process.env.JWT_RESET_EXPIRY || "1h",
   },
   email: {
@@ -97,8 +105,16 @@ export default {
     timeouts: {
       llmCall: parseInt(process.env.AGENT_LLM_TIMEOUT || "30000", 10),
       toolExecution: parseInt(process.env.AGENT_TOOL_TIMEOUT || "60000", 10),
-      agentExecution: parseInt(process.env.AGENT_EXECUTION_TIMEOUT || "120000", 10),
+      agentExecution: parseInt(
+        process.env.AGENT_EXECUTION_TIMEOUT || "120000",
+        10
+      ),
       planExecution: parseInt(process.env.AGENT_PLAN_TIMEOUT || "180000", 10),
     },
+  },
+  admin: {
+    allowedIps: process.env.ADMIN_ALLOWED_IPS
+      ? process.env.ADMIN_ALLOWED_IPS.split(",").map((ip) => ip.trim())
+      : [],
   },
 };

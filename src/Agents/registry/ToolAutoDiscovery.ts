@@ -30,23 +30,27 @@ export class ToolAutoDiscovery {
       const { metaTool } = await import("../tools/meta");
       toolRegistry.register(metaTool);
       const { contactTool } = await import("../tools/contact");
-      toolRegistry.register(qaTool)
+      toolRegistry.register(qaTool);
       toolRegistry.register(contactTool);
       const { sorobanTool } = await import("../tools/soroban");
       toolRegistry.register(sorobanTool);
-      const { sorobanContractStateTool } = await import("../tools/sorobanContractState");
+      const { sorobanContractStateTool } =
+        await import("../tools/sorobanContractState");
       toolRegistry.register(sorobanContractStateTool);
       const { riskAnalysisTool } = await import("../tools/riskAnalysis");
       toolRegistry.register(riskAnalysisTool);
-      const { MultiHopTradeTool } = await import("../tools/multiHopTradeTool");
-      const multiHopTradeTool = new MultiHopTradeTool();
-      toolRegistry.register(multiHopTradeTool);
+
+      const { PriceTool } = await import("../tools/price");
+      toolRegistry.register(new PriceTool());
+
+      const { liquidityPoolStatsTool } = await import("../tools/liquidityPoolStats");
+      toolRegistry.register(liquidityPoolStatsTool);
       // todo
       // await this.discoverToolsFromDirectory();
 
       this.initialized = true;
       logger.info("Tool registry initialized", {
-        toolCount: toolRegistry.getAllTools().length
+        toolCount: toolRegistry.getAllTools().length,
       });
     } catch (error) {
       logger.error("Failed to initialize tool registry", { error });

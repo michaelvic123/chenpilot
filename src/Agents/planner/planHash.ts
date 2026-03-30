@@ -1,3 +1,4 @@
+// chenpilot/src/Agents/planner/planHash.ts
 import crypto from "crypto";
 import { ExecutionPlan, PlanStep } from "./AgentPlanner";
 
@@ -124,7 +125,7 @@ export class PlanHashService {
       verify.update(planHash);
       verify.end();
       return verify.verify(publicKey, signature, "base64");
-    } catch (error) {
+    } catch {
       return false;
     }
   }
