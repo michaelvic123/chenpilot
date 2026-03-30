@@ -1,7 +1,10 @@
 [workspace]
 members = [
     "core_vault",
-    "multi_hop_swap",
+    "fee_distribution",
+    "por_validator",
+    "liquidity_vault",
+    "relayer_slashing",
 ]
 resolver = "2"
 
