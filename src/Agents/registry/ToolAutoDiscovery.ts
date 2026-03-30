@@ -46,6 +46,10 @@ export class ToolAutoDiscovery {
       const { liquidityPoolStatsTool } =
         await import("../tools/liquidityPoolStats");
       toolRegistry.register(liquidityPoolStatsTool);
+
+      const { strategyRegistryTool } = await import("../tools/strategyRegistry");
+      toolRegistry.register(strategyRegistryTool);
+
       // todo
       // await this.discoverToolsFromDirectory();
 
