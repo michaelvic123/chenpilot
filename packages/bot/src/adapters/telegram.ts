@@ -1,13 +1,11 @@
-import { Telegraf } from 'telegraf';
-import { TransactionNotificationData } from './types';
-import { createTrustlineOperation } from '@chen-pilot/sdk-core';
+import { Telegraf } from "telegraf";
+import { TransactionNotificationData } from "../types";
+import { createTrustlineOperation } from "@chen-pilot/sdk-core";
+import { searchFeatures, formatHelpMessage } from "../services/helpProvider";
 import { AssetVerificationService } from '../assetVerification';
 
 const DASHBOARD_URL = process.env.DASHBOARD_URL || `${process.env.API_BASE_URL || 'http://localhost:2333'}/dashboard`;
 const HORIZON_URL = process.env.STELLAR_HORIZON_URL || 'https://horizon-testnet.stellar.org';
-
-// #145: Anti-flood debounce — 3 seconds per user
-const DEBOUNCE_MS = 3000;
 
 export class TelegramAdapter {
   private bot: Telegraf | undefined;
@@ -55,29 +53,39 @@ export class TelegramAdapter {
     this.bot.command('trustline', async (ctx: any) => {
       const args = ctx.message.text.split(' ').slice(1);
       if (args.length < 1) {
-        return ctx.reply('Usage: /trustline <assetCode> [issuerDomain|issuerAddress]\nExample: /trustline USDC circle.com');
+        return ctx.reply(
+          "Usage: /trustline <assetCode> [issuerDomain|issuerAddress]\nExample: /trustline USDC circle.com"
+        );
       }
 
       const assetCode = args[0];
       const assetIssuer = args[1];
 
       if (!assetIssuer) {
-        return ctx.reply(`Please provide an issuer domain or address for ${assetCode}.`);
+        return ctx.reply(
+          `Please provide an issuer domain or address for ${assetCode}.`
+        );
       }
 
       try {
-        await ctx.reply(`🔍 Looking up asset ${assetCode} from ${assetIssuer}...`);
+        await ctx.reply(
+          `🔍 Looking up asset ${assetCode} from ${assetIssuer}...`
+        );
         const op = await createTrustlineOperation(assetCode, assetIssuer);
 
+        // In a real scenario, we would generate a signing link (e.g., Albedo or Stellar Laboratory)
+        // For now, we'll return the operation details
         let message = `✅ Found asset ${assetCode}!\n\n`;
         message += `To add this trustline, you can use the following details in your wallet:\n`;
         message += `<b>Asset:</b> ${assetCode}\n`;
         message += `<b>Issuer:</b> <code>${(op as any).asset.issuer}</code>\n\n`;
         message += `<i>Note: In a future update, I will provide a direct signing link.</i>`;
 
-        await ctx.reply(message, { parse_mode: 'HTML' });
+        await ctx.reply(message, { parse_mode: "HTML" });
       } catch (error) {
-        await ctx.reply(`❌ Error: ${error instanceof Error ? error.message : String(error)}`);
+        await ctx.reply(
+          `❌ Error: ${error instanceof Error ? error.message : String(error)}`
+        );
       }
     });
 
@@ -115,6 +123,14 @@ export class TelegramAdapter {
         await ctx.reply(`❌ Verification error: ${error instanceof Error ? error.message : String(error)}`);
       }
     });
+    // Set bot commands for mobile menu
+    await this.bot.telegram.setMyCommands([
+      { command: "start", description: "Start the bot" },
+      { command: "balance", description: "Check wallet balance" },
+      { command: "swap", description: "Swap assets" },
+      { command: "trustline", description: "Add trustline" },
+      { command: "help", description: "Show help" },
+    ]);
 
     this.bot.launch();
     console.log("✅ Telegram bot initialized.");
