@@ -20,3 +20,4 @@ export * from "./metadata";
 export * from "./memoUtils";
 export * from "./xdrDecoder";
 export * from "./assetCache";
+export * from "./networkStatus";
